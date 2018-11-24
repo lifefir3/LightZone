@@ -13,7 +13,14 @@ ifndef JAVA_HOME
   $(error "JAVA_HOME" must be set)
 endif
 
-PROCESSOR:=		$(shell uname -m)
+##
+# Target architecture
+##
+ifdef TARGET
+  PROCESSOR:=		$(TARGET)
+else
+  PROCESSOR:=		$(shell uname -m)
+endif
 ifeq ($(PROCESSOR),i486)
   PROCESSOR:=		i386
 else ifeq ($(PROCESSOR),i586)
@@ -33,9 +40,9 @@ TOOLS_BIN:=		$(abspath $(ROOT)/lightcrafts/tools/bin)
 # Default to a normal (Unix) classpath seperator.
 CLASSPATH_SEP:=		:
 
-# The default C and C++ compilers.
-CC:=			gcc
-CXX:=			g++
+# The default C and C++ compilers for Linux, FreeBSD, OpenIndiana, or MSYS2
+CC?=			gcc
+CXX?=			g++
 PKGCFG:=		pkg-config
 
 # Unset USE_ICC_HERE if the overall USE_ICC flags != 1.
@@ -43,8 +50,9 @@ ifneq ($(USE_ICC),1)
   USE_ICC_HERE:=
 endif
 
-# The initial set of CFLAGS.  (Must not use := here!)
-PLATFORM_CFLAGS=	-g
+# The initial set of CFLAGS and LDFLAGS.  (Must not use := here!)
+PLATFORM_CFLAGS=	$(CFLAGS) -g
+PLATFORM_LDFLAGS=	$(LDFLAGS)
 
 # Default symlink command.  This needs to be defined as a function variable
 # rather than just a simple variable because of the way it's overridden for
@@ -65,8 +73,8 @@ ifeq ($(PLATFORM),MacOSX)
     CC:=		gcc
     CXX:=		g++
   else ifeq ($(MACOSX_MINOR_VERSION),12) # Sierra
-    CC:=		gcc-7
-    CXX:=		g++-7
+    CC:=		clang
+    CXX:=		clang++
   else
     CC:=		clang-omp
     CXX:=		clang-omp++
@@ -96,7 +104,7 @@ ifeq ($(PLATFORM),MacOSX)
     MACOSX_ISYSROOT=
     MACOSX_SYSLIBROOT=
   endif
-  PLATFORM_LDFLAGS=	$(MACOSX_SYSLIBROOT)
+  PLATFORM_LDFLAGS+=	$(MACOSX_SYSLIBROOT)
 
   ##
   # These are to be only the bare minimum architecture-specific CFLAGS.  High-
@@ -298,7 +306,7 @@ ifeq ($(PLATFORM),$(filter $(PLATFORM),Linux FreeBSD SunOS))
     JAVA_INCLUDES:=	-I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/freebsd
     NUM_PROCESSORS:=	$(shell dmesg | grep '^cpu' | wc -l)
     PLATFORM_INCLUDES=	-I/usr/local/include
-    PLATFORM_LDFLAGS=	-L/usr/local/lib
+    PLATFORM_LDFLAGS+=	-L/usr/local/lib
   else ifeq ($(PLATFORM),SunOS)
     JAVA_INCLUDES:=	-I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/solaris
     NUM_PROCESSORS:=	$(shell psrinfo -p)

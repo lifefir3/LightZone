@@ -1,4 +1,5 @@
 /* Copyright (C) 2005-2011 Fabio Riccardi */
+/* Copyright (C) 2016-     Masahiro Kitagawa */
 
 package com.lightcrafts.model.ImageEditor;
 
@@ -253,7 +254,7 @@ public class Rendering implements Cloneable {
             index++;
         }
 
-        return processedImage;
+        return cropSourceImage(processedImage);
     }
 
     public void prefetch(Rectangle area) {
@@ -262,7 +263,7 @@ public class Rendering implements Cloneable {
             return;
         }
 
-        PlanarImage processedImage = getXformedSourceImage();
+        PlanarImage processedImage = cropSourceImage(getXformedSourceImage());
 
         int index = 0;
         for (Operation operation : pipeline) {
@@ -408,20 +409,6 @@ public class Rendering implements Cloneable {
                 xformedSourceImage = image;
         }
 
-        if (!cropBounds.isAngleOnly()) {
-            CropBounds actualCropBounds = CropBounds.transform(completeInputTransform, cropBounds);
-
-            Rectangle bounds = new Rectangle(xformedSourceImage.getMinX(), xformedSourceImage.getMinY(),
-                                             xformedSourceImage.getWidth(), xformedSourceImage.getHeight());
-            Rectangle finalBounds = bounds.intersection(new Rectangle(0, 0,
-                                                                      (int) Math.round(actualCropBounds.getWidth()),
-                                                                      (int) Math.round(actualCropBounds.getHeight())));
-            if (finalBounds.width > 0 && finalBounds.height > 0)
-                xformedSourceImage = Functions.crop(xformedSourceImage,
-                                                    finalBounds.x, finalBounds.y,
-                                                    finalBounds.width, finalBounds.height, null);
-        }
-
         // We explicitly cache this
         xformedSourceImage = Functions.toUShortLinear(xformedSourceImage, null);
 
@@ -429,5 +416,47 @@ public class Rendering implements Cloneable {
             xformedSourceImage.setProperty(JAIContext.PERSISTENT_CACHE_TAG, Boolean.TRUE);
 
         return xformedSourceImage;
+    }
+
+    private PlanarImage cropSourceImage(PlanarImage xformedSourceImage) {
+        if (!cropBounds.isAngleOnly()) {
+            final CropBounds actualCropBounds = CropBounds.transform(inputTransform, cropBounds);
+            final Rectangle bounds = new Rectangle(
+                    xformedSourceImage.getMinX(), xformedSourceImage.getMinY(),
+                    xformedSourceImage.getWidth(), xformedSourceImage.getHeight());
+
+            // Calculate inner width and height for actualCropBounds,
+            // while keeping the actualCropBound's aspect ratio as precisely as possible.
+            final double actualWidth  = actualCropBounds.getWidth();
+            final double actualHeight = actualCropBounds.getHeight();
+            int intWidth  = (int) Math.round(actualWidth);
+            int intHeight = (int) Math.round(actualHeight);
+
+            final Rectangle rect = new Rectangle(0, 0, intWidth, intHeight);
+
+            final Rectangle finalBounds = bounds.intersection(rect);
+
+            if (finalBounds.width > 0 && finalBounds.height > 0) {
+                final double ratio = actualWidth / actualHeight;
+                if (intWidth > finalBounds.width) {
+                    finalBounds.height = (int) (finalBounds.width / ratio);
+                }
+                if (intHeight > finalBounds.height) {
+                    finalBounds.width = (int) (finalBounds.height * ratio);
+                }
+                xformedSourceImage = Functions.crop(xformedSourceImage,
+                        finalBounds.x, finalBounds.y,
+                        finalBounds.width, finalBounds.height, null);
+            }
+        }
+        return xformedSourceImage;
+    }
+
+    float getScaleToFit(Dimension bounds) {
+        final Dimension newDimension = cropBounds.getDimensionToFit(bounds);
+        final Dimension dimension = getRenderingSize();
+        return (float) Math.min(
+                newDimension.getWidth() / dimension.getWidth(),
+                newDimension.getHeight() / dimension.getHeight());
     }
 }

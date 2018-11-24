@@ -27,7 +27,6 @@ import com.lightcrafts.utils.Version;
 import static com.lightcrafts.platform.windows.WindowsFileUtil.*;
 
 import com.lightcrafts.ui.LightZoneSkin;
-import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 
 public final class WindowsPlatform extends Platform {
 
@@ -110,36 +109,6 @@ public final class WindowsPlatform extends Platform {
         final File myDocuments =
             FileSystemView.getFileSystemView().getDefaultDirectory();
         return new File( myDocuments, Version.getApplicationName() );
-    }
-
-    @Override
-    public LookAndFeel getLookAndFeel() {
-        LookAndFeel laf = LightZoneSkin.getLightZoneLookAndFeel();
-
-        boolean addWindows = false;
-
-        if (addWindows) {
-            WindowsLookAndFeel quaqua = new WindowsLookAndFeel();
-
-            UIDefaults quaquaDefaults = quaqua.getDefaults();
-            Set<Object> quaquaKeys = quaquaDefaults.keySet();
-
-            String[] fromQuaqua = new String[] {
-                    "FileChooser",
-            };
-
-            Stream.of(fromQuaqua).forEach(qk -> {
-                quaquaKeys.stream()
-                    .filter(key -> key instanceof String &&
-                            ((String) key).startsWith(qk))
-                    .forEach(key -> {
-                        Object value = quaquaDefaults.get(key);
-                        UIManager.put(key, value);
-                    });
-            });
-        }
-
-        return laf;
     }
 
     @Override
@@ -257,18 +226,16 @@ public final class WindowsPlatform extends Platform {
     ////////// private ////////////////////////////////////////////////////////
 
     private static synchronized Collection<ColorProfileInfo> getColorProfiles() {
-        if ( m_profiles != null )
-            return m_profiles;
-        m_profiles = new ArrayList<ColorProfileInfo>();
+        if (m_profiles == null) {
+            String windir = System.getenv("WINDIR");
+            if (windir == null)
+                windir = "C:\\WINDOWS";
 
-        String windir = System.getenv( "WINDIR" );
-        if ( windir == null )
-            windir = "C:\\WINDOWS";
-
-        final File profileDir = new File(
-            windir + "\\system32\\spool\\drivers\\color"
-        );
-        return getColorProfiles(profileDir);
+            final File profileDir = new File(
+                    windir + "\\system32\\spool\\drivers\\color");
+            m_profiles = getColorProfiles(profileDir);
+        }
+        return m_profiles;
     }
 
     /**
@@ -305,6 +272,6 @@ public final class WindowsPlatform extends Platform {
      * The ICC profiles from
      * <code>$WINDIR\system32\spool\drivers\color</code>.
      */
-    private static List<ColorProfileInfo> m_profiles;
+    private static Collection<ColorProfileInfo> m_profiles;
 }
 /* vim:set et sw=4 ts=4: */

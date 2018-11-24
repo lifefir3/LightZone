@@ -11,7 +11,7 @@ There is a problem with some files checked out from Git that do not work with Wi
 line endings. There's a .gitattributes file to specify that those files need to have LF line endings.
 
 Download and install (or unpack) following:
--   __Apache Ant__
+-   __Apache Ant__ version 1.9.8 or later to support nativeheaderdir parameter
 -   __MSYS2__
     1. Install MSYS2 and update packages as described in https://msys2.github.io/
     1. Install required packages.
@@ -46,8 +46,8 @@ Few points for MSYS2 beginners
 If you haven't changed anything, your default shell is Bash. Open `~/.bashrc` with an editor (nano
 or vim) and enter following environmental variables. (Modify the paths to match your environment.):
 
-    export JAVA_HOME="/c/Program Files/Java/jdk1.8.0_102";
-    export ANT_HOME="/c/Program Files/apache-ant-1.9.6";
+    export JAVA_HOME="/c/Program Files/Java/jdk1.8.0_181";
+    export ANT_HOME="/c/Program Files/apache-ant-1.9.8";
     export MSSDK_HOME="/c/Program Files (x86)/Windows Kits/8.0";
     export INSTALL4J_HOME="/c/Program Files/install4j5";
     export PATH=$PATH:${JAVA_HOME}/bin:${ANT_HOME}/bin:${MSSDK_HOME}/bin/x86:${INSTALL4J_HOME}/bin;
@@ -58,8 +58,8 @@ Do NOT set C_INCLUDE_PATH=/usr/include for mingw compilers.
 
 Before starting your first build, you have to copy HtmlHelp.lib to mingw library path:
 
-    cp ${MSSDK_HOME}/Lib/win8/um/x86/Htmlhelp.Lib /mingw32/lib/libhtmlhelp.a
-    cp ${MSSDK_HOME}/Lib/win8/um/x64/Htmlhelp.Lib /mingw64/lib/libhtmlhelp.a
+    cp "${MSSDK_HOME}/Lib/10.0.14393.0/um/x86/Htmlhelp.Lib" /mingw32/lib/libhtmlhelp.a
+    cp "${MSSDK_HOME}/Lib/10.0.14393.0/um/x64/Htmlhelp.Lib" /mingw64/lib/libhtmlhelp.a
 
 Checkout your project with Git. If you have problems with line endings in build (the \r stuff), do
 following:
@@ -71,6 +71,10 @@ To start the build:
 
     cd windows
     ant build-installer
+
+If you want to build a 32-bit binary on 64-bit machine, specify TARGET variable:
+
+    TARGET=i386 ant build-installer
 
 ### Known build issues
 -   In LightZone there are now no version information. There was a problem with rc.exe from MSSDK
